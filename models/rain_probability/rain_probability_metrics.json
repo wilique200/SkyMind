@@ -1,0 +1,8 @@
+{
+  "test_auc": 0.949934,
+  "test_f1": 0.63326,
+  "test_accuracy": 0.86058,
+  "n_params": 357327,
+  "model": "Rain Probability Deep ResNet",
+  "target": "rain_flag"
+}
