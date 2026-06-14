@@ -1,0 +1,17 @@
+{
+  "model_name": "temperature",
+  "task": "regression",
+  "input_dim": 31,
+  "hidden_dims": [
+    512,
+    512,
+    256,
+    256,
+    128,
+    64
+  ],
+  "output_dim": 1,
+  "dropout": 0.2,
+  "target": "temperature_2m",
+  "unit": "\u00b0C"
+}
