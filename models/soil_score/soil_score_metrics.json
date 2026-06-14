@@ -1,0 +1,8 @@
+{
+  "rmse": 0.48751,
+  "mae": 0.358757,
+  "r2": 0.998981,
+  "model": "Soil Score Deep ResNet",
+  "target": "soil_score",
+  "n_params": 220607
+}
