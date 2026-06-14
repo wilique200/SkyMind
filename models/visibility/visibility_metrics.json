@@ -1,0 +1,8 @@
+{
+  "rmse": 0.360656,
+  "mae": 0.084058,
+  "r2": 0.997415,
+  "model": "Visibility Deep ResNet",
+  "target": "visibility_km",
+  "n_params": 319165
+}
