@@ -1,0 +1,16 @@
+{
+  "model_name": "wind_speed",
+  "task": "regression",
+  "input_dim": 26,
+  "hidden_dims": [
+    256,
+    256,
+    128,
+    128,
+    64
+  ],
+  "output_dim": 1,
+  "dropout": 0.25,
+  "target": "wind_speed_10m",
+  "unit": "m/s"
+}

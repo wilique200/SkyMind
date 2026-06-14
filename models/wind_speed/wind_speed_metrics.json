@@ -1,0 +1,8 @@
+{
+  "rmse": 3.83306,
+  "mae": 2.719965,
+  "r2": 0.708461,
+  "model": "Wind Speed Deep ResNet",
+  "target": "wind_speed_10m",
+  "n_params": 350645
+}
