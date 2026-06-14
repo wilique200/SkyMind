@@ -1,0 +1,8 @@
+{
+  "test_auc": 0.999995,
+  "test_f1": 0.992067,
+  "test_accuracy": 0.999051,
+  "model": "Thunderstorm Focal Loss ResNet",
+  "target": "thunderstorm",
+  "n_params": 351673
+}
