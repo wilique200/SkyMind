@@ -1,0 +1,7 @@
+{
+  "test_accuracy": 0.983856,
+  "test_f1_macro": 0.978978,
+  "model": "Heat Stress Deep ResNet",
+  "target": "heat_stress",
+  "n_params": 316790
+}
