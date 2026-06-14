@@ -1,0 +1,8 @@
+{
+  "rmse": 0.11414,
+  "mae": 0.089504,
+  "r2": 0.999894,
+  "model": "UV Index Deep ResNet",
+  "target": "uv_index",
+  "n_params": 215981
+}

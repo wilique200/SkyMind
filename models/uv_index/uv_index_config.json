@@ -1,0 +1,15 @@
+{
+  "model_name": "uv_index",
+  "task": "regression",
+  "input_dim": 22,
+  "hidden_dims": [
+    256,
+    128,
+    128,
+    64
+  ],
+  "output_dim": 1,
+  "dropout": 0.2,
+  "target": "uv_index",
+  "unit": ""
+}
