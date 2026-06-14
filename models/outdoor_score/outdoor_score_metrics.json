@@ -1,0 +1,8 @@
+{
+  "rmse": 0.40959,
+  "mae": 0.214555,
+  "r2": 0.983782,
+  "model": "Outdoor Score Deep ResNet",
+  "target": "outdoor_score",
+  "n_params": 220607
+}
