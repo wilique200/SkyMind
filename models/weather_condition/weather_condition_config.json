@@ -1,0 +1,23 @@
+{
+  "model_name": "weather_condition",
+  "task": "multiclass",
+  "input_dim": 45,
+  "hidden_dims": [
+    512,
+    256,
+    256,
+    128,
+    128,
+    64
+  ],
+  "output_dim": 5,
+  "dropout": 0.3,
+  "target": "weather_group",
+  "class_names": [
+    "Clear",
+    "Cloudy",
+    "Fog",
+    "Rain",
+    "Snow"
+  ]
+}
