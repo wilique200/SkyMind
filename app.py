@@ -478,14 +478,17 @@ if st.session_state.geocode_results:
         chosen = results[options.index(choice)]
 
     if st.button(f"🌍 Load weather for **{chosen['display']}**",
-                 key="load_btn"):
+             key="load_btn"):
         st.session_state.lat           = chosen["lat"]
         st.session_state.lon           = chosen["lon"]
         st.session_state.location_name = chosen["display"]
         st.session_state.geocode_results = []
         st.session_state.warnings      = WeatherWarnings()
+    # ✅ Clear stale predictions so new location re-runs inference
+        st.session_state.current_preds = None
+        st.session_state.all_forecasts = None
+        st.session_state.forecast_df   = None
         st.rerun()
-
 
 # ════════════════════════════════════════════════════════════
 # FETCH & PREDICT
