@@ -53,6 +53,7 @@ def geocode_city(city_name, max_results=5):
             "format": "json",
             "limit": max_results,
             "addressdetails": 1,
+            "accept-language": "en",
         }
         headers = {"User-Agent": "SkyMind-Weather-App/1.0"}
         resp = requests.get(url, params=params, headers=headers, timeout=8)
