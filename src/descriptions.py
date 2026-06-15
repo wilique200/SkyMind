@@ -38,6 +38,7 @@ def _wind_desc(kmh):
     if kmh < 50:  return "strong wind"
     if kmh < 75:  return "very strong wind"
     return "storm-force wind"
+      
 
 
 def generate_main_description(preds, location_name):
@@ -99,9 +100,9 @@ def generate_main_description(preds, location_name):
         tip = "❄️ Dress in layers and watch for icy surfaces when walking or driving."
     elif condition == "Fog":
         tip = "🌫️ Drive carefully — reduced visibility. Use fog lights and slow down."
-    elif preds["heat_stress_level"] >= 2:
+    elif preds["heat_stress_level"] >= 2 and temp >= 27:
         tip = "🥵 Dangerous heat — stay hydrated, seek shade, and avoid outdoor activity between 11am–3pm."
-    elif preds["heat_stress_level"] == 1:
+    elif preds["heat_stress_level"] == 1 and temp >= 22:
         tip = "☀️ It's warm out — drink water regularly and use sunscreen."
     elif temp < 0:
         tip = "🧊 Sub-zero temperatures — dress in thermal layers and protect exposed skin."
