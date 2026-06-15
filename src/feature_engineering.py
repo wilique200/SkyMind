@@ -16,7 +16,12 @@ def engineer_features(df: pd.DataFrame) -> pd.DataFrame:
     wind_speed_10m, wind_direction_10m
     """
     df = df.copy()
-
+    # Ensure rain_flag exists (required by outdoor_score model)
+    if 'rain_flag' not in df.columns:
+        if 'rain' in df.columns:
+            df['rain_flag'] = (df['rain'] > 0).astype(int)
+        else:
+            df['rain_flag'] = 0
     # ── Cyclical time encoding ───────────────────────────────
     df["hour_sin"]  = np.sin(2 * np.pi * df["hour"]  / 24)
     df["hour_cos"]  = np.cos(2 * np.pi * df["hour"]  / 24)
