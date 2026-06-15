@@ -386,29 +386,28 @@ def daily_forecast_strip(forecast_list):
 # ════════════════════════════════════════════════════════════
 # SESSION STATE INIT
 # ════════════════════════════════════════════════════════════
-if "location_name" not in st.session_state:
-    st.session_state.location_name = None
-if "lat" not in st.session_state:
-    st.session_state.lat = None
-if "lon" not in st.session_state:
-    st.session_state.lon = None
-if "forecast_df" not in st.session_state:
-    st.session_state.forecast_df = None
-if "current_preds" not in st.session_state:
-    st.session_state.current_preds = None
-if "all_forecasts" not in st.session_state:
-    st.session_state.all_forecasts = None
+# ════════════════════════════════════════════════════════════
+# SESSION STATE INIT
+# ════════════════════════════════════════════════════════════
+if "saved_cities" not in st.session_state:
+    # List of dicts: {name, lat, lon, preds, forecasts}
+    st.session_state.saved_cities = []
+if "active_city_idx" not in st.session_state:
+    st.session_state.active_city_idx = 0
+if "show_add_city" not in st.session_state:
+    st.session_state.show_add_city = False
 if "geocode_results" not in st.session_state:
     st.session_state.geocode_results = []
 if "warnings" not in st.session_state:
     st.session_state.warnings = WeatherWarnings()
 
-# Default theme until weather loads
-default_condition = st.session_state.current_preds["weather_condition"] \
-    if st.session_state.current_preds else "Clear"
-default_is_day = st.session_state.current_preds["is_day"] \
-    if st.session_state.current_preds else True
-
+# Apply theme from active city or default
+active = (
+    st.session_state.saved_cities[st.session_state.active_city_idx]
+    if st.session_state.saved_cities else None
+)
+default_condition = active["preds"]["weather_condition"] if active else "Clear"
+default_is_day    = active["preds"]["is_day"] if active else True
 apply_theme(default_condition, default_is_day)
 
 # ── Load models once ─────────────────────────────────────────
@@ -418,8 +417,10 @@ models = load_all_models("models")
 # ════════════════════════════════════════════════════════════
 # HEADER & SEARCH
 # ════════════════════════════════════════════════════════════
-col_logo, col_search, col_gps = st.columns([1.5, 4, 1])
-
+# ════════════════════════════════════════════════════════════
+# HEADER
+# ════════════════════════════════════════════════════════════
+col_logo, col_plus = st.columns([5, 1])
 with col_logo:
     st.markdown("""
     <div style="padding-top:0.3rem">
@@ -431,141 +432,185 @@ with col_logo:
       </span>
     </div>""", unsafe_allow_html=True)
 
-with col_search:
-    query = st.text_input(
-        "", placeholder="🔍  Search any city, town, or location...",
-        label_visibility="collapsed", key="search_input"
-    )
-    if query and len(query) >= 2:
-        results = geocode_city(query, max_results=5)
-        if results:
-            st.session_state.geocode_results = results
-        else:
-            st.session_state.geocode_results = []
-            st.markdown(
-                '<div class="sky-warning">⚠️ No results found. Try a nearby major city.</div>',
-                unsafe_allow_html=True
-            )
+with col_plus:
+    if st.button("➕", help="Add a city"):
+        st.session_state.show_add_city = not st.session_state.show_add_city
+        st.session_state.geocode_results = []
 
-with col_gps:
-    st.markdown("<div style='padding-top:0.3rem'>", unsafe_allow_html=True)
-    if st.button("📍 My Location"):
-        st.markdown("""
-        <script>
-        navigator.geolocation.getCurrentPosition(function(pos) {
-            const lat = pos.coords.latitude;
-            const lon = pos.coords.longitude;
-            window.parent.postMessage({type:"GPS",lat:lat,lon:lon},"*");
-        }, function() {
-            window.parent.postMessage({type:"GPS_DENIED"},"*");
-        });
-        </script>
-        """, unsafe_allow_html=True)
-        st.info("📍 Grant location access in your browser when prompted.")
-    st.markdown("</div>", unsafe_allow_html=True)
 
-# ── Location disambiguation dropdown ─────────────────────────
-if st.session_state.geocode_results:
-    results = st.session_state.geocode_results
-    if len(results) == 1:
-        chosen = results[0]
-    else:
-        options = [r["display"] for r in results]
-        choice  = st.selectbox(
-            "Multiple locations found — select yours:",
-            options, key="location_choice"
+# ════════════════════════════════════════════════════════════
+# ADD CITY PANEL (shown when + is clicked)
+# ════════════════════════════════════════════════════════════
+if st.session_state.show_add_city:
+    st.markdown("""
+    <div class="sky-card" style="margin-bottom:0.8rem">
+      <div style="font-size:0.85rem;font-weight:600;opacity:0.7;
+                  margin-bottom:0.6rem">🔍 Add a City</div>
+    </div>""", unsafe_allow_html=True)
+
+    col_inp, col_gps = st.columns([4, 1])
+    with col_inp:
+        query = st.text_input(
+            "", placeholder="Search any city...",
+            label_visibility="collapsed", key="search_input"
         )
+        if query and len(query) >= 2:
+            results = geocode_city(query, max_results=5)
+            if results:
+                st.session_state.geocode_results = results
+            else:
+                st.session_state.geocode_results = []
+                st.markdown(
+                    '<div class="sky-warning">⚠️ No results found.</div>',
+                    unsafe_allow_html=True
+                )
+    with col_gps:
+        if st.button("📍", help="Use my location"):
+            st.markdown("""
+            <script>
+            navigator.geolocation.getCurrentPosition(function(pos){
+                window.parent.postMessage(
+                    {type:"GPS",lat:pos.coords.latitude,
+                     lon:pos.coords.longitude},"*");
+            });
+            </script>""", unsafe_allow_html=True)
+
+    # Disambiguation dropdown
+    if st.session_state.geocode_results:
+        results = st.session_state.geocode_results
+        options = [r["display"] for r in results]
+        if len(options) > 1:
+            choice = st.selectbox(
+                "Select location:", options, key="location_choice"
+            )
+        else:
+            choice = options[0]
         chosen = results[options.index(choice)]
 
-    if st.button(f"🌍 Load weather for **{chosen['display']}**",
-             key="load_btn"):
-        st.session_state.lat           = chosen["lat"]
-        st.session_state.lon           = chosen["lon"]
-        st.session_state.location_name = chosen["display"]
-        st.session_state.geocode_results = []
-        st.session_state.warnings      = WeatherWarnings()
-    # ✅ Clear stale predictions so new location re-runs inference
-        st.session_state.current_preds = None
-        st.session_state.all_forecasts = None
-        st.session_state.forecast_df   = None
-        st.rerun()
+        # Check if already saved
+        already_saved = any(
+            c["name"] == chosen["display"]
+            for c in st.session_state.saved_cities
+        )
 
-# ════════════════════════════════════════════════════════════
-# FETCH & PREDICT
-# ════════════════════════════════════════════════════════════
-if st.session_state.lat is not None and st.session_state.current_preds is None:
-    lat  = st.session_state.lat
-    lon  = st.session_state.lon
-    name = st.session_state.location_name
-    warn = st.session_state.warnings
-
-    with st.spinner(f"🌍 Fetching forecast for {name}..."):
-        try:
-            raw_df = fetch_forecast(lat, lon, days=7)
-
-            # Validate API response
-            valid, issue = assess_api_response(raw_df)
-            if not valid:
-                # Try nearest training city fallback
-                fb_lat, fb_lon, fb_name, fb_msg = handle_location_fallback(lat, lon)
-                warn.add("warning", fb_msg)
-                raw_df = fetch_forecast(fb_lat, fb_lon, days=7)
-                st.session_state.location_name = fb_name
-
-            # Confidence check
-            is_far, conf_msg = check_location_confidence(lat, lon)
-            if is_far:
-                warn.add("info", conf_msg)
-
-            # Engineer features
-            engineered_df = engineer_features(raw_df)
-
-            # Find current hour row
-            now_hour = datetime.now().hour
-            hour_mask = engineered_df["hour"] == now_hour
-            if not hour_mask.any():
-                hour_mask = pd.Series([True] + [False]*(len(engineered_df)-1),
-                                      index=engineered_df.index)
-            current_row = engineered_df[hour_mask].iloc[[0]]
-            is_day_now  = bool(current_row["is_day"].iloc[0])
-
-            # Run models for current conditions
-            current_preds = run_all_models(
-                models, current_row, is_day_now, now_hour
-            )
-            current_preds["time"] = datetime.now()
-
-            # Run all forecast hours
-            all_forecasts = run_forecast(models, raw_df)
-
-            # Soil check
-            if not handle_missing_soil(raw_df, lat, lon):
-                warn.add("info",
-                    "Soil data is unreliable for this location type. "
-                    "Agricultural score is hidden.")
-                current_preds["hide_soil"] = True
-
-            st.session_state.forecast_df   = raw_df
-            st.session_state.current_preds = current_preds
-            st.session_state.all_forecasts = all_forecasts
-            st.session_state.warnings      = warn
-            st.rerun()
-
-        except Exception as e:
+        if already_saved:
             st.markdown(
-                f'<div class="sky-error">❌ {str(e)}</div>',
+                '<div class="sky-warning">✅ This city is already added.</div>',
                 unsafe_allow_html=True
             )
+        else:
+            if st.button(f"➕ Add **{chosen['display']}**", key="add_city_btn"):
+                # Add city placeholder — will fetch on next render
+                st.session_state.saved_cities.append({
+                    "name": chosen["display"],
+                    "lat":  chosen["lat"],
+                    "lon":  chosen["lon"],
+                    "preds": None,
+                    "forecasts": None,
+                    "warnings": WeatherWarnings(),
+                })
+                st.session_state.active_city_idx = (
+                    len(st.session_state.saved_cities) - 1
+                )
+                st.session_state.show_add_city   = False
+                st.session_state.geocode_results = []
+                st.rerun()
 
+
+# ════════════════════════════════════════════════════════════
+# CITY TABS
+# ════════════════════════════════════════════════════════════
+if st.session_state.saved_cities:
+    cities = st.session_state.saved_cities
+    tab_labels = [c["name"].split(",")[0] for c in cities]
+
+    # Render tab strip
+    tab_cols = st.columns(len(tab_labels) + 1)  # +1 for spacing
+    for i, (col, label) in enumerate(zip(tab_cols, tab_labels)):
+        with col:
+            is_active = (i == st.session_state.active_city_idx)
+            style = (
+                "font-weight:700;border-bottom:2px solid white;opacity:1;"
+                if is_active else "opacity:0.5;"
+            )
+            if st.button(label, key=f"tab_{i}"):
+                st.session_state.active_city_idx = i
+                st.rerun()
+
+    st.markdown("<hr style='margin:0.3rem 0 0.8rem;opacity:0.2'>",
+                unsafe_allow_html=True)
+# ════════════════════════════════════════════════════════════
+# FETCH & PREDICT FOR ACTIVE CITY
+# ════════════════════════════════════════════════════════════
+if st.session_state.saved_cities:
+    idx  = st.session_state.active_city_idx
+    city = st.session_state.saved_cities[idx]
+
+    if city["preds"] is None:
+        with st.spinner(f"🌍 Fetching forecast for {city['name']}..."):
+            try:
+                lat, lon, name = city["lat"], city["lon"], city["name"]
+                warn = WeatherWarnings()
+
+                raw_df = fetch_forecast(lat, lon, days=7)
+
+                valid, issue = assess_api_response(raw_df)
+                if not valid:
+                    fb_lat, fb_lon, fb_name, fb_msg = handle_location_fallback(lat, lon)
+                    warn.add("warning", fb_msg)
+                    raw_df = fetch_forecast(fb_lat, fb_lon, days=7)
+                    st.session_state.saved_cities[idx]["name"] = fb_name
+
+                is_far, conf_msg = check_location_confidence(lat, lon)
+                if is_far:
+                    warn.add("info", conf_msg)
+
+                engineered_df = engineer_features(raw_df)
+                now_hour  = datetime.now().hour
+                hour_mask = engineered_df["hour"] == now_hour
+                if not hour_mask.any():
+                    hour_mask = pd.Series(
+                        [True] + [False]*(len(engineered_df)-1),
+                        index=engineered_df.index
+                    )
+                current_row = engineered_df[hour_mask].iloc[[0]]
+                is_day_now  = bool(current_row["is_day"].iloc[0])
+
+                current_preds = run_all_models(models, current_row, is_day_now, now_hour)
+                current_preds["time"] = datetime.now()
+
+                all_forecasts = run_forecast(models, raw_df)
+
+                if not handle_missing_soil(raw_df, lat, lon):
+                    warn.add("info",
+                        "Soil data is unreliable for this location type. "
+                        "Agricultural score is hidden.")
+                    current_preds["hide_soil"] = True
+
+                st.session_state.saved_cities[idx]["preds"]     = current_preds
+                st.session_state.saved_cities[idx]["forecasts"] = all_forecasts
+                st.session_state.saved_cities[idx]["warnings"]  = warn
+                st.rerun()
+
+            except Exception as e:
+                st.markdown(
+                    f'<div class="sky-error">❌ {str(e)}</div>',
+                    unsafe_allow_html=True
+                )
 
 # ════════════════════════════════════════════════════════════
 # MAIN DISPLAY
 # ════════════════════════════════════════════════════════════
-if st.session_state.current_preds:
-    p    = st.session_state.current_preds
-    name = st.session_state.location_name
-    warn = st.session_state.warnings
+# New:
+if st.session_state.saved_cities:
+    idx  = st.session_state.active_city_idx
+    city = st.session_state.saved_cities[idx]
+    p    = city.get("preds")
+    name = city["name"]
+    warn = city.get("warnings", WeatherWarnings())
 
+    if p is None:
+        st.stop()  # Still loading
     # Re-apply theme based on actual weather
     apply_theme(p["weather_condition"], p["is_day"])
     weather_animation(p["weather_condition"], p["is_day"])
@@ -879,16 +924,21 @@ if st.session_state.current_preds:
 
     # ── Refresh button ────────────────────────────────────────
     st.markdown("<br>", unsafe_allow_html=True)
-    col_r1, col_r2, col_r3 = st.columns([2, 1, 2])
-    with col_r2:
-        if st.button("🔄 Refresh"):
-            st.session_state.current_preds = None
-            st.session_state.all_forecasts = None
-            st.session_state.forecast_df   = None
-            st.rerun()
+    col_r1, col_r2, col_r3 = st.columns([1, 1, 1])
+with col_r2:
+    if st.button("🔄 Refresh"):
+        st.session_state.saved_cities[idx]["preds"]     = None
+        st.session_state.saved_cities[idx]["forecasts"] = None
+        st.rerun()
 
+# Remove city button
+with col_r3:
+    if st.button("🗑️ Remove city"):
+        st.session_state.saved_cities.pop(idx)
+        st.session_state.active_city_idx = max(0, idx - 1)
+        st.rerun()
 else:
-    # ── LANDING SCREEN ───────────────────────────────────────
+    # No cities added yet
     apply_theme("Clear", True)
     st.markdown("""
     <div style="text-align:center;padding:4rem 1rem 2rem">
@@ -897,20 +947,8 @@ else:
         SkyMind
       </h1>
       <p style="font-size:1.1rem;opacity:0.75;max-width:480px;margin:0 auto">
-        AI-powered weather intelligence. Search any location to get
-        deep weather insights powered by 10 machine learning models
-        trained on 2M+ global observations.
+        Tap <strong>➕</strong> to add your first city and get AI-powered
+        weather insights from 10 ML models trained on 2M+ global observations.
       </p>
-      <div style="margin-top:2rem;display:flex;justify-content:center;
-                  gap:1rem;flex-wrap:wrap;font-size:0.9rem;opacity:0.7">
-        <span>🌡️ Temperature</span>
-        <span>🌧️ Rain Probability</span>
-        <span>⛈️ Thunderstorm Risk</span>
-        <span>🥵 Heat Stress</span>
-        <span>👁️ Visibility</span>
-        <span>🏃 Outdoor Score</span>
-        <span>🌱 Soil Conditions</span>
-        <span>☀️ UV Index</span>
-      </div>
     </div>
     """, unsafe_allow_html=True)
