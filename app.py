@@ -613,13 +613,15 @@ with col_logo:
 with col_tabs:
     cities = st.session_state.saved_cities
     if cities:
-        pills = "".join([
-            f'<span class="tab-pill {"active" if i==st.session_state.active_city_idx else ""}">'
-            f'{c["name"].split(",")[0]}'
-            f'{f" · {c[\"preds\"][\"temperature\"]:.0f}°" if c["preds"] else ""}'
-            f'</span>'
-            for i, c in enumerate(cities)
-        ])
+        pills = ""
+        for i, c in enumerate(cities):
+            active_cls = "active" if i == st.session_state.active_city_idx else ""
+            short_name = c["name"].split(",")[0]
+            temp_str   = f" · {c['preds']['temperature']:.0f}°" if c["preds"] else ""
+            pills += (
+                f'<span class="tab-pill {active_cls}">'
+                f'{short_name}{temp_str}</span>'
+            )
         st.markdown(f'<div class="tab-strip">{pills}</div>', unsafe_allow_html=True)
         btn_cols = st.columns(len(cities))
         for i, (col, c) in enumerate(zip(btn_cols, cities)):
